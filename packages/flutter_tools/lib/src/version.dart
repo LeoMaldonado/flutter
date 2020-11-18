@@ -66,6 +66,7 @@ class FlutterVersion {
       globals.processUtils,
       _workingDirectory,
     );
+    _oldTagVersion = GitTagVersion.parseTagVersion(globals.processUtils, workingDirectory: _workingDirectory);
     _gitTagVersion = GitTagVersion.determine(globals.processUtils, workingDirectory: _workingDirectory, fetchTags: false);
     _frameworkVersion = gitTagVersion.frameworkVersionFor(_frameworkRevision);
   }
@@ -80,6 +81,7 @@ class FlutterVersion {
   /// user explicitly wants to get the version, e.g. for `flutter --version` or
   /// `flutter doctor`.
   void fetchTagsAndUpdate() {
+    _oldTagVersion = GitTagVersion.parseTagVersion(globals.processUtils, workingDirectory: _workingDirectory);
     _gitTagVersion = GitTagVersion.determine(globals.processUtils, workingDirectory: _workingDirectory, fetchTags: true);
     _frameworkVersion = gitTagVersion.frameworkVersionFor(_frameworkRevision);
   }
@@ -120,6 +122,9 @@ class FlutterVersion {
 
   GitTagVersion _gitTagVersion;
   GitTagVersion get gitTagVersion => _gitTagVersion;
+
+  GitTagVersion _oldTagVersion;
+  GitTagVersion get oldTagVersion => _oldTagVersion;
 
   /// The name of the local branch.
   /// Use getBranchName() to read this.
@@ -742,6 +747,11 @@ class GitTagVersion {
         _runGit('git fetch $_flutterGit --tags -f', processUtils, workingDirectory);
       }
     }
+    
+    return parseTagVersion(processUtils, workingDirectory: workingDirectory);
+  }
+
+  static GitTagVersion parseTagVersion(ProcessUtils processUtils, {String workingDirectory}) {
     final List<String> tags = _runGit(
       'git tag --points-at HEAD', processUtils, workingDirectory).trim().split('\n');
 
@@ -759,7 +769,7 @@ class GitTagVersion {
         return parse(tag);
       }
     }
-
+    
     // If we're not currently on a tag, use git describe to find the most
     // recent tag and number of commits past.
     return parse(

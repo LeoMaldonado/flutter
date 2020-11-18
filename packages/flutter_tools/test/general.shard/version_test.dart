@@ -85,6 +85,15 @@ void main() {
           stdout: '0.1.2-3-1234abcd',
         ));
 
+        processManager.addCommand(const FakeCommand(
+          command: <String>['git', 'tag', '--points-at', 'HEAD'],
+        ));
+
+        processManager.addCommand(const FakeCommand(
+          command: <String>['git', 'describe', '--match', '*.*.*', '--long', '--tags'],
+          stdout: '0.1.2-3-1234abcd',
+        ));
+
         processManager.addCommand(FakeCommand(
           command: const <String>['git', 'rev-parse', '--abbrev-ref', '--symbolic', '@{u}'],
           stdout: channel,
@@ -447,6 +456,69 @@ void main() {
       });
     });
   }
+
+  testUsingContext('check FlutterVersion data when FlutterVersion is instantiated', () async {
+    final FlutterVersion flutterVersion = FlutterVersion(clock: _testClock);
+
+    expect(flutterVersion.oldTagVersion.gitTag, '1.2.3');
+    expect(flutterVersion.gitTagVersion.gitTag, '1.2.4');
+  }, overrides: <Type, Generator> {
+    ProcessManager: () => FakeProcessManager.list(
+        <FakeCommand>[
+          const FakeCommand(
+            command: <String>['git', '-c', 'log.showSignature=false', 'log', '-n', '1', '--pretty=format:%H'],
+            stdout: 'abc123',
+          ),
+          const FakeCommand(
+            command: <String>['git', 'tag', '--points-at', 'HEAD'],
+            stdout: '1.2.3',
+          ),
+          const FakeCommand(
+            command: <String>['git', 'tag', '--points-at', 'HEAD'],
+            stdout: '1.2.4',
+          ),
+        ]),
+  });
+
+  testUsingContext('check FlutterVersion data when fetchTagsAndUpdate is called', () async {
+    final FlutterVersion flutterVersion = FlutterVersion(clock: _testClock);
+    flutterVersion.fetchTagsAndUpdate();
+
+    expect(flutterVersion.oldTagVersion.gitTag, '1.2.5');
+    expect(flutterVersion.gitTagVersion.gitTag, '1.2.6');
+  }, overrides: <Type, Generator> {
+    ProcessManager: () => FakeProcessManager.list(
+        <FakeCommand>[
+          const FakeCommand(
+            command: <String>['git', '-c', 'log.showSignature=false', 'log', '-n', '1', '--pretty=format:%H'],
+            stdout: 'abc123',
+          ),
+          const FakeCommand(
+            command: <String>['git', 'tag', '--points-at', 'HEAD'],
+            stdout: '1.2.3',
+          ),
+          const FakeCommand(
+            command: <String>['git', 'tag', '--points-at', 'HEAD'],
+            stdout: '1.2.4',
+          ),
+          const FakeCommand(
+            command: <String>['git', 'tag', '--points-at', 'HEAD'],
+            stdout: '1.2.5',
+          ),
+          const FakeCommand(
+            command: <String>['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+            stdout: 'master',
+          ),
+          const FakeCommand(
+            command: <String>['git', 'fetch', 'https://github.com/flutter/flutter.git', '--tags', '-f'],
+            stdout: '',
+          ),
+          const FakeCommand(
+            command: <String>['git', 'tag', '--points-at', 'HEAD'],
+            stdout: '1.2.6',
+          ),
+        ]),
+  });
 
   testUsingContext('GitTagVersion', () {
     const String hash = 'abcdef';

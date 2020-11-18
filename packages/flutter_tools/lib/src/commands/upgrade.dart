@@ -296,7 +296,9 @@ class UpgradeCommandRunner {
 
   /// Update the user's packages.
   Future<void> updatePackages(FlutterVersion flutterVersion) async {
+    globals.printStatus('From Flutter ${flutterVersion.oldTagVersion.gitTag}');
     globals.printStatus('');
+    globals.printStatus('To...');
     globals.printStatus(flutterVersion.toString());
     final String projectRoot = findProjectRoot();
     if (projectRoot != null) {
